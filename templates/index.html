@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASK CLAUDE — Training Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #1a1a2e;
+            border-bottom: 1px solid #2a2a4a;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #c4a7ff;
+            letter-spacing: 1px;
+        }
+
+        .logo span {
+            font-size: 13px;
+            color: #888;
+            font-weight: 400;
+        }
+
+        .window-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .window-selector label {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .window-selector select {
+            background: #16213e;
+            color: #c4a7ff;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .window-selector select:hover {
+            border-color: #c4a7ff;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 780px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 16px 20px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+        }
+
+        .message .role {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .message.user .role {
+            color: #6ec1e4;
+        }
+
+        .message.assistant .role {
+            color: #c4a7ff;
+        }
+
+        .message .content p {
+            margin-bottom: 8px;
+        }
+
+        .message .content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message .content strong {
+            color: #fff;
+        }
+
+        .message .content ul,
+        .message .content ol {
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        .message .content li {
+            margin-bottom: 4px;
+        }
+
+        .message .content code {
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .message .content pre {
+            background: #0d1117;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 8px;
+        }
+
+        .message .content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .welcome {
+            max-width: 780px;
+            margin: auto;
+            text-align: center;
+            color: #666;
+            padding: 60px 20px;
+        }
+
+        .welcome h2 {
+            color: #c4a7ff;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        .welcome p {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .welcome .examples {
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .welcome .example {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 13px;
+            color: #aaa;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .welcome .example:hover {
+            border-color: #c4a7ff;
+            color: #e0e0e0;
+        }
+
+        .input-area {
+            border-top: 1px solid #2a2a4a;
+            padding: 16px 24px;
+            background: #111;
+            flex-shrink: 0;
+        }
+
+        .input-row {
+            max-width: 780px;
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .input-row textarea {
+            flex: 1;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4a;
+            border-radius: 10px;
+            color: #e0e0e0;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            min-height: 48px;
+            max-height: 150px;
+            line-height: 1.5;
+        }
+
+        .input-row textarea:focus {
+            border-color: #c4a7ff;
+        }
+
+        .input-row textarea::placeholder {
+            color: #555;
+        }
+
+        .input-row button {
+            background: #c4a7ff;
+            color: #0f0f0f;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            align-self: flex-end;
+            transition: background 0.2s;
+        }
+
+        .input-row button:hover {
+            background: #d4bfff;
+        }
+
+        .input-row button:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .loading .dots span {
+            animation: blink 1.4s infinite both;
+        }
+
+        .loading .dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading .dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0.2;
+            }
+
+            40% {
+                opacity: 1;
+            }
+        }
+
+        .status-bar {
+            padding: 6px 24px;
+            background: #0a0a0a;
+            border-top: 1px solid #1a1a1a;
+            font-size: 11px;
+            color: #555;
+            text-align: center;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <h1>ASK CLAUDE</h1>
+            <span>Training Analysis</span>
+        </div>
+        <div class="window-selector">
+            <label>Data window:</label>
+            <select id="window">
+                <option value="7d">7 days</option>
+                <option value="1mo">1 month</option>
+                <option value="42d" selected>42 days</option>
+                <option value="3mo">3 months</option>
+                <option value="6mo">6 months</option>
+                <option value="1y">1 year</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="chat-container" id="chat">
+        <div class="welcome" id="welcome">
+            <h2>Training Analysis Chat</h2>
+            <p>Ask questions about your Intervals.icu training data.<br>
+                Claude will analyze your activities, wellness, and fitness trends.</p>
+            <div class="examples">
+                <div class="example" onclick="askExample(this)">How has my training load been trending? Am I at risk of
+                    overtraining?</div>
+                <div class="example" onclick="askExample(this)">Break down my swim/bike/run volume distribution. Is it
+                    balanced?</div>
+                <div class="example" onclick="askExample(this)">What does my fitness (CTL) trend look like? Any
+                    concerns?</div>
+                <div class="example" onclick="askExample(this)">Give me a summary of my training and key areas to
+                    improve.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <div class="input-row">
+            <textarea id="input" placeholder="Ask about your training..." rows="1"
+                onkeydown="handleKey(event)"></textarea>
+            <button id="send" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        Connected to Intervals.icu · Powered by Claude
+    </div>
+
+    <script>
+        const chatEl = document.getElementById('chat');
+        const inputEl = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+        const welcomeEl = document.getElementById('welcome');
+        let history = [];
+
+        // Auto-resize textarea
+        inputEl.addEventListener('input', () => {
+            inputEl.style.height = 'auto';
+            inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+        });
+
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function askExample(el) {
+            inputEl.value = el.textContent;
+            sendMessage();
+        }
+
+        function addMessage(role, content) {
+            if (welcomeEl) welcomeEl.remove();
+
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            div.innerHTML = `<div class="role">${role === 'user' ? 'You' : 'Claude'}</div><div class="content">${formatContent(content)}</div>`;
+            chatEl.appendChild(div);
+            chatEl.scrollTop = chatEl.scrollHeight;
+            return div;
+        }
+
+        function formatContent(text) {
+            // Convert markdown-style formatting to HTML
+            let html = text;
+
+            // Code blocks
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+            // Italic
+            html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<strong>$1</strong>');
+            html = html.replace(/^## (.+)$/gm, '<strong>$1</strong>');
+            html = html.replace(/^# (.+)$/gm, '<strong>$1</strong>');
+
+            // Bullet lists
+            html = html.replace(/^[•\-\*] (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+            // Numbered lists
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+
+            // Paragraphs (double newlines)
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = '<p>' + html + '</p>';
+
+            // Single newlines within paragraphs
+            html = html.replace(/(?<!<\/li>|<\/ul>|<\/pre>|<\/p>|<ul>)\n(?!<)/g, '<br>');
+
+            return html;
+        }
+
+        function showLoading() {
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+            div.id = 'loading';
+            div.innerHTML = `<div class="role">Claude</div><div class="loading">Analyzing your training data <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>`;
+            chatEl.appendChild(div);
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function removeLoading() {
+            const el = document.getElementById('loading');
+            if (el) el.remove();
+        }
+
+        async function sendMessage() {
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            const window_val = document.getElementById('window').value;
+
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+            sendBtn.disabled = true;
+
+            addMessage('user', message);
+            showLoading();
+
+            try {
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        window: window_val,
+                        history: history
+                    })
+                });
+
+                removeLoading();
+
+                const data = await resp.json();
+                if (data.error) {
+                    addMessage('assistant', `Error: ${data.error}`);
+                } else {
+                    addMessage('assistant', data.reply);
+                    history.push({ role: 'user', content: message });
+                    history.push({ role: 'assistant', content: data.reply });
+                }
+            } catch (err) {
+                removeLoading();
+                addMessage('assistant', `Connection error: ${err.message}`);
+            }
+
+            sendBtn.disabled = false;
+            inputEl.focus();
+        }
+    </script>
+</body>
+
+</html>
