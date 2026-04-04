@@ -1,10 +1,15 @@
 import os
+import time
 import requests
 from datetime import datetime, timedelta
 from requests.auth import HTTPBasicAuth
 
 
 BASE_URL = "https://intervals.icu/api/v1"
+
+# Simple TTL cache: { window: (timestamp, data) }
+_cache = {}
+CACHE_TTL = 900  # 15 minutes
 
 
 def _auth():
@@ -84,6 +89,12 @@ def get_events():
 
 def build_training_summary(window="42d"):
     """Pull all relevant data and build a structured summary for Claude."""
+    now = time.time()
+    if window in _cache:
+        cached_at, data = _cache[window]
+        if now - cached_at < CACHE_TTL:
+            return data
+
     activities = get_activities(window)
     wellness = get_wellness(window)
 
@@ -146,7 +157,7 @@ def build_training_summary(window="42d"):
             "sport_settings": settings.get("sportSettings", []),
         }
 
-    return {
+    result = {
         "window": window,
         "athlete": athlete_info,
         "events": (
@@ -165,3 +176,6 @@ def build_training_summary(window="42d"):
         "activities": activity_summaries,
         "wellness": wellness_summaries,
     }
+
+    _cache[window] = (now, result)
+    return result
