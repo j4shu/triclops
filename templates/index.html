@@ -77,6 +77,38 @@
         border-color: #c4a7ff;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .io-buttons {
+        display: flex;
+        gap: 6px;
+      }
+
+      .io-btn {
+        background: transparent;
+        color: #888;
+        border: 1px solid #2a2a4a;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: border-color 0.2s, color 0.2s;
+      }
+
+      .io-btn:hover {
+        border-color: #c4a7ff;
+        color: #c4a7ff;
+      }
+
+      .io-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
       .chat-container {
         flex: 1;
         overflow-y: auto;
@@ -376,17 +408,24 @@
       <div class="logo">
         <h1>Intervals.icu Training Analysis</h1>
       </div>
-      <div class="window-selector">
-        <label>Data window:</label>
-        <select id="window">
-          <option value="7d">7 days</option>
-          <option value="1mo">1 month</option>
-          <option value="42d" selected>42 days</option>
-          <option value="3mo">3 months</option>
-          <option value="6mo">6 months</option>
-          <option value="1y">1 year</option>
-        </select>
+      <div class="header-actions">
+        <div class="io-buttons">
+          <button class="io-btn" onclick="importConversation()" title="Import conversation">Import</button>
+          <button class="io-btn" id="exportBtn" onclick="exportConversation()" title="Export conversation" disabled>Export</button>
+        </div>
+        <div class="window-selector">
+          <label>Data window:</label>
+          <select id="window">
+            <option value="7d">7 days</option>
+            <option value="1mo">1 month</option>
+            <option value="42d" selected>42 days</option>
+            <option value="3mo">3 months</option>
+            <option value="6mo">6 months</option>
+            <option value="1y">1 year</option>
+          </select>
+        </div>
       </div>
+      <input type="file" id="importFile" accept=".md" style="display:none" onchange="handleImport(event)">
     </header>
 
     <div class="chat-container" id="chat">
@@ -398,19 +437,21 @@
         </p>
         <div class="examples">
           <div class="example" onclick="askExample(this)">
+            Create a training plan up until my next race based on my recent training data.
+          </div>
+          <div class="example" onclick="askExample(this)">
             How has my training load been trending? Am I at risk of
             overtraining?
           </div>
-          <div class="example" onclick="askExample(this)">
-            Break down my swim/bike/run volume distribution. Is it balanced?
-          </div>
-          <div class="example" onclick="askExample(this)">
+          <!-- <div class="example" onclick="askExample(this)">
             What does my fitness (CTL) trend look like? Any concerns?
-          </div>
-          <div class="example" onclick="askExample(this)">
+          </div> -->
+          <!-- <div class="example" onclick="askExample(this)">
             Give me a summary of my training and key areas to improve.
-          </div>
-        </div>
+          </div> -->
+          <!-- <div class="example" onclick="askExample(this)">
+            Create a training plan for the next 4 weeks based on my recent training data, with a focus on improving my FTP.
+          </div> -->
       </div>
     </div>
 
@@ -516,6 +557,7 @@
             addMessage("assistant", data.reply);
             history.push({ role: "user", content: message });
             history.push({ role: "assistant", content: data.reply });
+            document.getElementById('exportBtn').disabled = false;
           }
         } catch (err) {
           removeLoading();
@@ -524,6 +566,63 @@
 
         sendBtn.disabled = false;
         inputEl.focus();
+      }
+
+      function exportConversation() {
+        if (history.length === 0) return;
+        const date = new Date().toISOString().slice(0, 10);
+        const window_val = document.getElementById('window').value;
+        let md = `# Training Analysis Conversation\n`;
+        md += `**Date:** ${date}  \n`;
+        md += `**Data window:** ${window_val}\n\n---\n\n`;
+        for (const msg of history) {
+          const label = msg.role === 'user' ? '## You' : '## Claude';
+          md += `${label}\n\n${msg.content}\n\n---\n\n`;
+        }
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `training-chat-${date}.md`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function importConversation() {
+        document.getElementById('importFile').click();
+      }
+
+      function handleImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          const sections = text.split(/^---$/m).filter(s => s.trim());
+          const parsed = [];
+          for (const section of sections) {
+            const trimmed = section.trim();
+            if (trimmed.startsWith('## You')) {
+              const content = trimmed.replace(/^## You\s*/, '').trim();
+              if (content) parsed.push({ role: 'user', content });
+            } else if (trimmed.startsWith('## Claude')) {
+              const content = trimmed.replace(/^## Claude\s*/, '').trim();
+              if (content) parsed.push({ role: 'assistant', content });
+            }
+          }
+          if (parsed.length === 0) {
+            alert('No conversation found in this file.');
+            return;
+          }
+          // Clear current chat
+          history = parsed;
+          chatEl.innerHTML = '';
+          for (const msg of parsed) {
+            addMessage(msg.role, msg.content);
+          }
+          document.getElementById('exportBtn').disabled = false;
+        };
+        reader.readAsText(file);
+        event.target.value = '';
       }
     </script>
   </body>
