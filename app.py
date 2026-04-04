@@ -1,15 +1,18 @@
 import json
 import os
-
-from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+from datetime import datetime
+from pathlib import Path
 
 import anthropic
+import gradio as gr
+from dotenv import load_dotenv
+
 from intervals_client import build_training_summary
 
 load_dotenv()
 
-app = Flask(__name__)
+CONVERSATIONS_DIR = Path("conversations")
+CONVERSATIONS_DIR.mkdir(exist_ok=True)
 
 SYSTEM_PROMPT = """You are an expert triathlon coach and sports scientist analyzing an age-group triathlete's training data from Intervals.icu. You have deep knowledge of:
 - Periodization and training load management (CTL/ATL/TSB)
@@ -27,59 +30,112 @@ Keep responses focused and conversational — this is a chat, not a report.
 If the data is insufficient to answer a question, say so and explain what additional data would help."""
 
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+def save_conversation(history, last_user_msg, last_reply, window):
+    """Auto-save the full conversation to a markdown file in conversations/."""
+    all_msgs = list(history) + [
+        {"role": "user", "content": last_user_msg},
+        {"role": "assistant", "content": last_reply},
+    ]
+    # Use a stable filename based on the first message timestamp
+    # so follow-up messages update the same file
+    if len(all_msgs) <= 2:
+        # New conversation — create a new file
+        ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        filename = f"chat_{ts}.md"
+    else:
+        # Continuing conversation — find the most recent file and overwrite
+        existing = sorted(CONVERSATIONS_DIR.glob("chat_*.md"))
+        filename = (
+            existing[-1].name
+            if existing
+            else f"chat_{datetime.now().strftime('%Y-%m-%d_%H%M%S')}.md"
+        )
+
+    md = f"# Training Analysis Conversation\n"
+    md += f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+    md += f"**Data window:** {window}\n\n---\n\n"
+    for msg in all_msgs:
+        label = "## You" if msg["role"] == "user" else "## Claude"
+        md += f"{label}\n\n{msg['content']}\n\n"
+
+    (CONVERSATIONS_DIR / filename).write_text(md)
 
 
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    body = request.get_json()
-    user_message = body.get("message", "").strip()
-    window = body.get("window", "42d")
-    history = body.get("history", [])
+WINDOW_CHOICES = [
+    ("7 days", "7d"),
+    ("1 month", "1mo"),
+    ("42 days", "42d"),
+    ("3 months", "3mo"),
+    ("6 months", "6mo"),
+    ("1 year", "1y"),
+]
 
-    if not user_message:
-        return jsonify({"error": "Empty message"}), 400
 
+def respond(message, history, window):
+    """Stream a response from Claude with Intervals.icu data context."""
     # Fetch training data
     try:
         summary = build_training_summary(window)
     except Exception as e:
-        return jsonify({"error": f"Failed to fetch Intervals.icu data: {e}"}), 502
+        yield f"**Error fetching Intervals.icu data:** {e}"
+        return
 
-    # Build the data context message
-    data_context = (
-        f"Here is the athlete's training data for the last {window} window:\n\n"
-        f"```json\n{json.dumps(summary, indent=2, default=str)}\n```"
-    )
-
-    # Build messages for Claude
+    # Build Claude messages — inject data context only on first turn
     messages = []
-
-    # Include conversation history
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Add current user message with data context
-    full_user_message = f"{data_context}\n\nAthlete's question: {user_message}"
-    messages.append({"role": "user", "content": full_user_message})
-
-    # Call Claude
-    try:
-        client = anthropic.Anthropic()
-        response = client.messages.create(
-            model="claude-opus-4-6",
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            messages=messages,
+    if not history:
+        data_context = (
+            f"Here is the athlete's training data for the last {window} window:\n\n"
+            f"```json\n{json.dumps(summary, indent=2, default=str)}\n```\n\n"
         )
-        reply = response.content[0].text
-    except Exception as e:
-        return jsonify({"error": f"Claude API error: {e}"}), 502
+        full_message = f"{data_context}Athlete's question: {message}"
+    else:
+        full_message = message
 
-    return jsonify({"reply": reply})
+    messages.append({"role": "user", "content": full_message})
 
+    # Stream from Claude
+    client = anthropic.Anthropic()
+    reply = ""
+    with client.messages.stream(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        system=SYSTEM_PROMPT,
+        messages=messages,
+    ) as stream:
+        for text in stream.text_stream:
+            reply += text
+            yield reply
+
+    # Auto-save conversation
+    save_conversation(history, message, reply, window)
+
+
+EXAMPLES = [
+    ["Create a training plan up until my next race based on my recent training data."],
+    ["Give me a summary of my recent training and key areas to improve."],
+    ["How has my training load been trending? Am I at risk of overtraining?"],
+    ["Break down my swim/bike/run volume distribution. Is it balanced?"],
+]
+
+with gr.Blocks(
+    title="Intervals.icu Training Analysis",
+) as app:
+    gr.Markdown("# Intervals.icu Training Analysis")
+
+    window = gr.Dropdown(
+        choices=WINDOW_CHOICES,
+        value="42d",
+        label="Data Window",
+    )
+
+    gr.ChatInterface(
+        fn=respond,
+        additional_inputs=[window],
+        examples=EXAMPLES,
+    )
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5050)
+    app.launch(server_port=5050, theme="JohnSmith9982/small_and_pretty")
