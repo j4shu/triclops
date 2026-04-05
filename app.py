@@ -136,4 +136,4 @@ with gr.Blocks(
     )
 
 if __name__ == "__main__":
-    app.launch(server_port=5050, theme="JohnSmith9982/small_and_pretty")
+    app.launch(server_port=5050, theme=gr.themes.Glass())
