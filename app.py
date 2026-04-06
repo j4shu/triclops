@@ -58,7 +58,10 @@ def export_conversation(history, window):
     md += f"**Data window:** {window}\n\n---\n\n"
     for msg in history:
         label = "## You" if msg["role"] == "user" else "## Claude"
-        md += f"{label}\n\n{msg['content']}\n\n"
+        content = msg["content"]
+        if isinstance(content, list):
+            content = "\n".join(block["text"] for block in content if block.get("text"))
+        md += f"{label}\n\n{content}\n\n"
     (CONVERSATIONS_DIR / filename).write_text(md)
     gr.Info(f"Conversation exported to {filename}")
 
@@ -125,7 +128,9 @@ with gr.Blocks(
         label="Data Window",
     )
 
-    chatbot = gr.Chatbot(height="75vh", show_label=False, resizable=True)
+    chatbot = gr.Chatbot(
+        height="75vh", show_label=False, resizable=True, autoscroll=False
+    )
     textbox = gr.Textbox()
     gr.ChatInterface(
         fn=respond,
