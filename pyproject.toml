@@ -1,0 +1,11 @@
+[project]
+name = "triclops"
+version = "0.1.0"
+description = "An AI triathlon coach"
+requires-python = ">=3.14"
+dependencies = [
+    "anthropic>=0.89.0",
+    "gradio>=6.11.0",
+    "python-dotenv>=1.2.2",
+    "requests>=2.33.1",
+]
