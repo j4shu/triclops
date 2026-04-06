@@ -129,9 +129,12 @@ EXAMPLES = [
 ]
 
 with gr.Blocks(
-    title="Intervals.icu Training Analysis",
+    title="triclops",
 ) as app:
-    gr.Markdown("# Intervals.icu Training Analysis")
+    gr.Markdown(
+        "# triclops: An AI Triathlon Coach\n"
+        "*One eye on your swim. One on your bike. One on your run.*"
+    )
 
     window = gr.Dropdown(
         choices=WINDOW_CHOICES,
@@ -146,4 +149,11 @@ with gr.Blocks(
     )
 
 if __name__ == "__main__":
-    app.launch(server_port=5050, theme=gr.themes.Glass())
+    app.launch(
+        server_port=5050,
+        theme=gr.themes.Glass(
+            spacing_size="lg",
+            text_size="lg",
+            font=[gr.themes.GoogleFont("MesloLGM Nerd Font")],
+        ),
+    )
