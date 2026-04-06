@@ -10,6 +10,8 @@ from intervals_client import build_training_summary
 
 load_dotenv()
 
+client = anthropic.Anthropic()
+
 CONVERSATIONS_DIR = Path("conversations")
 CONVERSATIONS_DIR.mkdir(exist_ok=True)
 
@@ -100,8 +102,6 @@ def respond(message, history, window):
 
     messages.append({"role": "user", "content": full_message})
 
-    # Stream from Claude
-    client = anthropic.Anthropic()
     reply = ""
     with client.messages.stream(
         model="claude-opus-4-6",
@@ -114,19 +114,13 @@ def respond(message, history, window):
             yield reply
 
 
-with gr.Blocks(
-    title="triclops",
-) as app:
+with gr.Blocks(title="triclops", analytics_enabled=False) as app:
     gr.Markdown(
         "# triclops: An AI Triathlon Coach\n"
         "*One eye on your swim. One on your bike. One on your run.*"
     )
 
-    window = gr.Dropdown(
-        choices=WINDOW_CHOICES,
-        value="42d",
-        label="Data Window",
-    )
+    window = gr.Dropdown(choices=WINDOW_CHOICES, value="42d", label="Data Window")
 
     chatbot = gr.Chatbot(
         height="75vh", show_label=False, resizable=True, autoscroll=False
