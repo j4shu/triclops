@@ -29,6 +29,23 @@ Keep responses focused and conversational — this is a chat, not a report.
 If the data is insufficient to answer a question, say so and explain what additional data would help."""
 
 
+WINDOW_CHOICES = [
+    ("7 days", "7d"),
+    ("1 month", "1mo"),
+    ("42 days", "42d"),
+    ("3 months", "3mo"),
+    ("6 months", "6mo"),
+    ("1 year", "1y"),
+]
+
+EXAMPLES = [
+    ["Create a training plan up until my next race based on my recent training data."],
+    ["Give me a summary of my recent training and key areas to improve."],
+    ["How has my training load been trending? Am I at risk of overtraining?"],
+    ["Break down my swim/bike/run volume distribution. Is it balanced?"],
+]
+
+
 def export_conversation(history, window):
     """Export the conversation to a markdown file in conversations/."""
     if not history:
@@ -44,16 +61,6 @@ def export_conversation(history, window):
         md += f"{label}\n\n{msg['content']}\n\n"
     (CONVERSATIONS_DIR / filename).write_text(md)
     gr.Info(f"Conversation exported to {filename}")
-
-
-WINDOW_CHOICES = [
-    ("7 days", "7d"),
-    ("1 month", "1mo"),
-    ("42 days", "42d"),
-    ("3 months", "3mo"),
-    ("6 months", "6mo"),
-    ("1 year", "1y"),
-]
 
 
 def respond(message, history, window):
@@ -104,13 +111,6 @@ def respond(message, history, window):
             yield reply
 
 
-EXAMPLES = [
-    ["Create a training plan up until my next race based on my recent training data."],
-    ["Give me a summary of my recent training and key areas to improve."],
-    ["How has my training load been trending? Am I at risk of overtraining?"],
-    ["Break down my swim/bike/run volume distribution. Is it balanced?"],
-]
-
 with gr.Blocks(
     title="triclops",
 ) as app:
@@ -141,7 +141,5 @@ with gr.Blocks(
 if __name__ == "__main__":
     app.launch(
         server_port=5050,
-        theme=gr.themes.Glass(
-            font=[gr.themes.GoogleFont("MesloLGM Nerd Font")],
-        ),
+        theme=gr.themes.Glass(font=[gr.themes.GoogleFont("MesloLGM Nerd Font")]),
     )
