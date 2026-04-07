@@ -37,13 +37,7 @@ cp .athlete.example .athlete
 ## Run
 
 ```sh
-uv run app.py
-```
-
-For development, you can run with hot reload:
-
-```sh
-gradio app.py
+./run.sh
 ```
 
 The app will be available at `http://localhost:5050`.
