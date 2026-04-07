@@ -1,14 +1,9 @@
 from json import load
 from pathlib import Path
-from time import time
 
 from helpers import *
 
 ATHLETE_FILE = Path(".athlete")
-
-# Simple TTL cache: { past: (timestamp, data) }
-_cache = {}
-CACHE_TTL = 3600  # 1 hour
 
 
 def get_activities(past, raw=False):
@@ -116,19 +111,10 @@ def get_events(past="6mo", future="6mo", raw=False):
 
 
 def build_training_summary(past="42d"):
-    now = time()
-    if past in _cache:
-        cached_at, data = _cache[past]
-        if now - cached_at < CACHE_TTL:
-            return data
-
-    result = {
+    return {
         "window": past,
         "athlete": get_athlete(),
         "wellness": get_wellness(past),
         "activities": get_activities(past),
         "events": get_events(),
     }
-
-    _cache[past] = (now, result)
-    return result
