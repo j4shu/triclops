@@ -83,20 +83,6 @@ def mps_to_min_per_100yds(mps):
     return f"{m}:{s:02d}/100yd"
 
 
-def calculate_distance(meters, activity_type):
-    if activity_type == "Swim":
-        return meters_to_yards(meters)
-    return meters_to_miles(meters or 0)
-
-
-def calculate_speed(mps, activity_type):
-    if activity_type == "Swim":
-        return mps_to_min_per_100yds(mps)
-    if activity_type == "Run":
-        return mps_to_min_per_mile(mps)
-    return mps_to_mph(mps or 0)
-
-
 # "interval_summary": [
 #     "2x 388m 138bpm",
 #     "2x 45m 131bpm",
@@ -106,7 +92,7 @@ def calculate_speed(mps, activity_type):
 #     "1x 91m 142bpm",
 #     "1x 91m 143bpm"
 # ],
-def parse_interval_summary(summary):
+def parse_swim_interval_summary(summary):
     intervals = []
     for s in summary:
         parts = s.split()
