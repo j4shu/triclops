@@ -40,10 +40,7 @@ def get_activities(past, raw=False):
             "time_in_zones": a.get("icu_zone_times"),
             "decoupling": a.get("decoupling"),
             "efficiency_factor": a.get("icu_efficiency_factor"),
-            "variability_index": a.get("icu_variability_index"),
-            "polarization_index": a.get("polarization_index"),
             "strain_score": a.get("strain_score"),
-            "power_hr_ratio": a.get("icu_power_hr"),
             "work": a.get("icu_joules"),
             # Pace & form
             "average_speed": a.get("average_speed"),
