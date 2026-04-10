@@ -7,11 +7,19 @@ from requests.auth import HTTPBasicAuth
 BASE_URL = "https://intervals.icu/api/v1"
 
 
-def api_get(path, params=None):
+def api_get_athlete(path, params=None):
     auth = HTTPBasicAuth("API_KEY", environ["INTERVALS_API_KEY"])
     athlete_id = environ["INTERVALS_ATHLETE_ID"]
     url = f"{BASE_URL}/athlete/{athlete_id}/{path}"
     resp = get(url, params=params, auth=auth, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def api_get_activity_intervals(activity_id):
+    auth = HTTPBasicAuth("API_KEY", environ["INTERVALS_API_KEY"])
+    url = f"{BASE_URL}/activity/{activity_id}/intervals"
+    resp = get(url, auth=auth, timeout=30)
     resp.raise_for_status()
     return resp.json()
 
