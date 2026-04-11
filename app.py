@@ -33,12 +33,12 @@ If the data is insufficient to answer a question, say so and explain what additi
 
 
 WINDOW_CHOICES = [
-    ("7 days", "7d"),
-    ("1 month", "1mo"),
-    ("42 days", "42d"),
-    ("3 months", "3mo"),
-    ("6 months", "6mo"),
-    ("1 year", "1y"),
+    ("7 days", 7),
+    ("1 month", 30),
+    ("42 days", 42),
+    ("3 months", 90),
+    ("6 months", 180),
+    ("1 year", 365),
 ]
 
 EXAMPLES = [
@@ -58,7 +58,7 @@ def export_conversation(history, window):
     filename = f"chat_{ts}.md"
     md = f"# Training Analysis Conversation\n"
     md += f"**Date:** {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-    md += f"**Data window:** {window}\n\n---\n\n"
+    md += f"**Data window:** {window} days\n\n---\n\n"
     for msg in history:
         label = "## You" if msg["role"] == "user" else "## Claude"
         content = msg["content"]
@@ -83,7 +83,7 @@ def respond(message, history, window):
             yield f"**Error fetching Intervals.icu data:** {e}"
             return
         data_context = (
-            f"Here is the athlete's training data for the last {window} window:\n\n"
+            f"Here is the athlete's training data for the past {window} days:\n\n"
             f"```json\n{dumps(summary, indent=2, default=str)}\n```\n\n"
         )
         # reference training plan if it exists
@@ -120,8 +120,7 @@ with gr.Blocks(title="triclops", analytics_enabled=False) as app:
         "*One eye on your swim. One on your bike. One on your run.*"
     )
 
-    window = gr.Dropdown(choices=WINDOW_CHOICES, value="42d", label="Data Window")
-
+    window = gr.Dropdown(choices=WINDOW_CHOICES, value=42, label="Data Window")
     chatbot = gr.Chatbot(
         height="75vh", show_label=False, resizable=True, autoscroll=False
     )

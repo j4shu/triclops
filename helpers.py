@@ -23,26 +23,18 @@ def api_get_activity_intervals(activity_id):
     return _api_get(f"activity/{activity_id}/intervals")
 
 
-def get_date_range(past, future=None):
+def get_date_bounds(past, future=None):
     today = datetime.now().date()
-    windows = {
-        "1d": 1,
-        "4d": 4,
-        "7d": 7,
-        "1mo": 30,
-        "42d": 42,
-        "3mo": 90,
-        "6mo": 180,
-        "1y": 365,
-    }
-    days = windows.get(past, 42)
-    oldest = today - timedelta(days=days)
-    if future:
-        future_days = windows.get(future, 42)
-        newest = today + timedelta(days=future_days)
-    else:
-        newest = today
+    oldest = today - timedelta(days=past)
+    newest = today + timedelta(days=future) if future else today
     return oldest.isoformat(), newest.isoformat()
+
+
+def get_date_range(past):
+    """Return a set of ISO date strings for every day in [today - past, today]."""
+    today = datetime.now().date()
+    oldest = today - timedelta(days=past)
+    return {(oldest + timedelta(days=i)).isoformat() for i in range(past + 1)}
 
 
 def strip_empty(o):
@@ -50,8 +42,7 @@ def strip_empty(o):
         return {
             k: strip_empty(v)
             for k, v in o.items()
-            # filter out null, boolean, and zero values
-            if v is not None and not isinstance(v, bool) and not v == 0.0
+            if v not in (None, True, False, 0.0, [])
         }
     if isinstance(o, list):
         return [strip_empty(i) for i in o]

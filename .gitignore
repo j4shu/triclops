@@ -5,3 +5,4 @@ __pycache__/
 conversations/
 .athlete
 training_plan.md
+.cache/
